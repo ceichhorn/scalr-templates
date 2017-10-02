@@ -1,0 +1,30 @@
+This can be used to create a scalr farm with lots of haproxy's.
+
+1 create your farm with at least 1 haproxy.
+It's a good idea to makesure you haproxy is last on the list.
+
+Once created save your farm and create a farm template.
+
+Download the farm temp,ate you created.  Ijust copied and pasted it into a vi window.
+
+on the bottom of thefile you shuld see the haproxy farm role settings.
+
+remove the last 2 lines of the file and add a comma to the last bracket.
+
+-----------------
+"storage": []
+        }
+    ]
+}
+
+Changes to:
+
+"storage": []
+        },
+
+-------------------
+
+Run the create-farm.sh script and it will copy in haproxy farm roles for each property needed.
+
+When done your farm template just needs to be edited so the last lines look like what it was.  
+Meaning remove the last comma and add back the 2 brackets as above.

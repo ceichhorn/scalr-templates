@@ -1,0 +1,582 @@
+{
+    "_meta": {
+        "schema_version": "v1beta0-7.7.1"
+    },
+    "farm": {
+        "name": "paas-success-kubernetes-staging-west",
+        "description": "",
+        "project": {
+            "id": "0d2870f5-e02d-43d2-b947-20d0b95362fb"
+        },
+        "timezone": "America\/New_York",
+        "launchOrder": "sequential",
+        "variables": [
+            {
+                "name": "ENVIRONMENT",
+                "value": "staging"
+            },
+            {
+                "name": "ETCD_INITIAL_CLUSTER_GV",
+                "value": "g00000001354416=http:\/\/10.152.12.7:2380,g00000001354414=http:\/\/10.152.12.6:2380,g00000001354408=http:\/\/10.152.12.5:2380"
+            },
+            {
+                "name": "KUBE_DOMAIN",
+                "value": "k8s.gcipaas.com",
+                "description": "kubernetes domain"
+            },
+            {
+                "name": "KUBE_MASTER",
+                "value": "paas-success-kubernetes-staging-gce-west.staging.gannettdigital.com"
+            },
+            {
+                "name": "VO_ROUTING_KEY",
+                "value": "paas-success"
+            }
+        ]
+    },
+    "roles": [
+        {
+            "alias": "k8s-api-haproxy",
+            "role": {
+                "id": 79184
+            },
+            "cloudPlatform": "gce",
+            "cloudLocation": "us-west1",
+            "availabilityZones": [
+                "us-west1-a"
+            ],
+            "instanceType": {
+                "id": "g1-small"
+            },
+            "scaling": {
+                "enabled": true,
+                "minInstances": 2,
+                "maxInstances": 2,
+                "scalingBehavior": "launch-terminate",
+                "considerSuspendedServers": "running",
+                "rules": []
+            },
+            "networking": {
+                "networks": [
+                    {
+                        "id": "gannett-paas-xpn\/global\/networks\/gannett-west-xpn-network"
+                    }
+                ],
+                "subnets": [
+                    {
+                        "id": "gannett-paas-staging-us-west1"
+                    }
+                ]
+            },
+            "bootstrapping": {
+                "enabled": true,
+                "type": "ChefServerBootstrapConfiguration",
+                "server": {
+                    "id": 2
+                },
+                "environment": "staging",
+                "logLevel": "auto",
+                "sslVerificationMode": "auto",
+                "scope": "role",
+                "daemonize": false,
+                "runList": "[\"recipe[gci-haproxy]\"]",
+                "attributes": "{\n  \"haproxy\": {\n    \"mode\": \"tcp\",\n    \"incoming_port\": \"443\"\n  }\n}"
+            },
+            "cloudFeatures": {
+                "type": "GceCloudFeatures",
+                "networkTags": [
+                    "scalr",
+                    "gannett-internal-https",
+                    "gannett-internal-haproxy-status"
+                ]
+            },
+            "variables": [
+                {
+                    "name": "DNS",
+                    "value": "4280-17041-scalr.staging.gannettdigital.com."
+                },
+                {
+                    "name": "HAPROXY_CONFIGURATION",
+                    "value": "[\n{\n   \"name\": \"unsecure\",\n   \"listen\": {\n     \"bind\": \"*\",\n     \"port\": 80\n   },\n   \"upstream\": {\n     \"alias\": \"kubernetes-master\",\n     \"port\": 6443\n   },\n   \"rabbit_food\": {\n        \"port\": 6443\n   }\n}\n]"
+                }
+            ],
+            "orchestration": {
+                "rules": [
+                    {
+                        "trigger": {
+                            "triggerType": "SpecificEventTrigger",
+                            "event": {
+                                "id": "HostUp"
+                            }
+                        },
+                        "target": {
+                            "targetType": "TriggeringServerTarget"
+                        },
+                        "action": {
+                            "actionType": "ScalrScriptAction",
+                            "scriptVersion": {
+                                "script": {
+                                    "id": 233
+                                },
+                                "version": -1
+                            }
+                        },
+                        "timeout": 180,
+                        "runAs": "",
+                        "order": 50,
+                        "blocking": true,
+                        "scope": "farmrole",
+                        "enabled": false
+                    }
+                ]
+            },
+            "storage": []
+        },
+        {
+            "alias": "kubernetes-master",
+            "role": {
+                "id": 79275
+            },
+            "cloudPlatform": "gce",
+            "cloudLocation": "us-west1",
+            "availabilityZones": [
+                "us-west1-a"
+            ],
+            "instanceType": {
+                "id": "n1-standard-1"
+            },
+            "scaling": {
+                "enabled": true,
+                "minInstances": 1,
+                "maxInstances": 2,
+                "scalingBehavior": "launch-terminate",
+                "considerSuspendedServers": "running",
+                "rules": []
+            },
+            "networking": {
+                "networks": [
+                    {
+                        "id": "gannett-paas-xpn\/global\/networks\/gannett-west-xpn-network"
+                    }
+                ],
+                "subnets": [
+                    {
+                        "id": "gannett-paas-staging-us-west1"
+                    }
+                ]
+            },
+            "bootstrapping": {
+                "enabled": true,
+                "type": "ChefServerBootstrapConfiguration",
+                "server": {
+                    "id": 2
+                },
+                "environment": "staging",
+                "logLevel": "auto",
+                "sslVerificationMode": "auto",
+                "scope": "role",
+                "daemonize": false,
+                "runList": "[\"recipe[gci-kubernetes-manager::default@2.1.3]\"]",
+                "attributes": "{\n  \"etcd\": {\n    \"initial-cluster\": \"{ETCD_INITIAL_CLUSTER_GV}\"\n  },\n  \"kubernetes\": {\n    \"data_bag_item\": \"{KUBE_TLS}\",\n    \"kube_master_port\": \"443\"\n  },\n\n  \"kubernetes_support\": {\n    \"kube_api_server\": \"http:\/\/{KUBE_MASTER}:443\",\n    \"kube_domain\": \"{KUBE_DOMAIN}\"\n  },\n  \"calico\": {\n    \"k8s_api_root\": \"http:\/\/{KUBE_MASTER}:443\"\n  }\n}"
+            },
+            "cloudFeatures": {
+                "type": "GceCloudFeatures",
+                "networkTags": [
+                    "scalr",
+                    "gannett-west-staging-calico",
+                    "gannett-staging-kubernetes-master"
+                ]
+            },
+            "variables": [
+                {
+                    "name": "CONSUL_ACL_TOKEN",
+                    "value": "6df84508-a611-89b1-d69b-37a901c452e4"
+                },
+                {
+                    "name": "KUBE_TLS",
+                    "value": "paas_success_kube_staging_west_gce"
+                }
+            ],
+            "orchestration": {
+                "rules": [
+                    {
+                        "trigger": {
+                            "triggerType": "SpecificEventTrigger",
+                            "event": {
+                                "id": "HostDown"
+                            }
+                        },
+                        "target": {
+                            "conditions": [
+                                {
+                                    "farmRoles": [
+                                        {
+                                            "alias": "k8s-api-haproxy"
+                                        }
+                                    ],
+                                    "type": "FarmRolesCondition"
+                                }
+                            ],
+                            "targetType": "FarmTarget"
+                        },
+                        "action": {
+                            "actionType": "ScalrScriptAction",
+                            "scriptVersion": {
+                                "script": {
+                                    "id": 266
+                                },
+                                "version": -1
+                            }
+                        },
+                        "timeout": 180,
+                        "runAs": "",
+                        "order": 10,
+                        "blocking": true,
+                        "scope": "farmrole",
+                        "enabled": true
+                    },
+                    {
+                        "trigger": {
+                            "triggerType": "SpecificEventTrigger",
+                            "event": {
+                                "id": "HostUp"
+                            }
+                        },
+                        "target": {
+                            "conditions": [
+                                {
+                                    "farmRoles": [
+                                        {
+                                            "alias": "k8s-api-haproxy"
+                                        }
+                                    ],
+                                    "type": "FarmRolesCondition"
+                                }
+                            ],
+                            "targetType": "FarmTarget"
+                        },
+                        "action": {
+                            "actionType": "ScalrScriptAction",
+                            "scriptVersion": {
+                                "script": {
+                                    "id": 266
+                                },
+                                "version": -1
+                            }
+                        },
+                        "timeout": 180,
+                        "runAs": "",
+                        "order": 50,
+                        "blocking": true,
+                        "scope": "farmrole",
+                        "enabled": true
+                    }
+                ]
+            },
+            "storage": []
+        },
+        {
+            "alias": "etcd",
+            "role": {
+                "id": 79268
+            },
+            "cloudPlatform": "gce",
+            "cloudLocation": "us-west1",
+            "availabilityZones": [
+                "us-west1-a"
+            ],
+            "instanceType": {
+                "id": "n1-standard-1"
+            },
+            "scaling": {
+                "enabled": true,
+                "minInstances": 3,
+                "maxInstances": 3,
+                "scalingBehavior": "launch-terminate",
+                "considerSuspendedServers": "running",
+                "rules": []
+            },
+            "networking": {
+                "networks": [
+                    {
+                        "id": "gannett-paas-xpn\/global\/networks\/gannett-west-xpn-network"
+                    }
+                ],
+                "subnets": [
+                    {
+                        "id": "gannett-paas-staging-us-west1"
+                    }
+                ]
+            },
+            "bootstrapping": {
+                "enabled": true,
+                "type": "ChefServerBootstrapConfiguration",
+                "server": {
+                    "id": 2
+                },
+                "environment": "staging",
+                "logLevel": "auto",
+                "sslVerificationMode": "auto",
+                "scope": "role",
+                "daemonize": false,
+                "runList": "[\"recipe[gci-etcd3::default]\"]"
+            },
+            "cloudFeatures": {
+                "type": "GceCloudFeatures",
+                "networkTags": [
+                    "scalr",
+                    "staging-etcd-west"
+                ]
+            },
+            "variables": [],
+            "orchestration": {
+                "rules": []
+            },
+            "storage": []
+        },
+        {
+            "alias": "kubernetes-worker",
+            "role": {
+                "id": 79276
+            },
+            "cloudPlatform": "gce",
+            "cloudLocation": "us-west1",
+            "availabilityZones": [
+                "us-west1-a"
+            ],
+            "instanceType": {
+                "id": "n1-standard-1"
+            },
+            "scaling": {
+                "enabled": true,
+                "minInstances": 2,
+                "maxInstances": 4,
+                "scalingBehavior": "launch-terminate",
+                "considerSuspendedServers": "running",
+                "rules": []
+            },
+            "networking": {
+                "networks": [
+                    {
+                        "id": "gannett-paas-xpn\/global\/networks\/gannett-west-xpn-network"
+                    }
+                ],
+                "subnets": [
+                    {
+                        "id": "gannett-paas-staging-us-west1"
+                    }
+                ]
+            },
+            "bootstrapping": {
+                "enabled": true,
+                "type": "ChefServerBootstrapConfiguration",
+                "server": {
+                    "id": 2
+                },
+                "environment": "staging",
+                "logLevel": "auto",
+                "sslVerificationMode": "auto",
+                "scope": "role",
+                "daemonize": false,
+                "runList": "[\"recipe[gci-kubernetes-worker::default@2.1.6]\"]"
+            },
+            "cloudFeatures": {
+                "type": "GceCloudFeatures",
+                "networkTags": [
+                    "scalr",
+                    "gannett-west-staging-calico",
+                    "gannett-paas-staging-kubernetes-worker"
+                ]
+            },
+            "variables": [
+                {
+                    "name": "CONSUL_ACL_TOKEN",
+                    "value": "6df84508-a611-89b1-d69b-37a901c452e4"
+                },
+                {
+                    "name": "KUBE_TLS",
+                    "value": "paas_success_kube_staging_gce_west"
+                }
+            ],
+            "orchestration": {
+                "rules": []
+            },
+            "storage": [
+                {
+                    "type": "PersistentStorageConfiguration",
+                    "reUse": false,
+                    "fromTemplateIfMissing": false,
+                    "template": {
+                        "size": 100,
+                        "type": "pd-ssd"
+                    }
+                },
+                {
+                    "type": "RootStorageConfiguration",
+                    "template": {
+                        "size": 20,
+                        "type": "pd-standard"
+                    }
+                },
+                {
+                    "type": "PersistentStorageConfiguration",
+                    "reUse": true,
+                    "fromTemplateIfMissing": false,
+                    "mounting": {
+                        "enabled": true,
+                        "fileSystem": "ext4",
+                        "mountPoint": "\/var\/lib\/docker\/containers"
+                    },
+                    "template": {
+                        "size": 20,
+                        "type": "pd-standard"
+                    }
+                },
+                {
+                    "type": "PersistentStorageConfiguration",
+                    "reUse": true,
+                    "fromTemplateIfMissing": false,
+                    "mounting": {
+                        "enabled": true,
+                        "fileSystem": "ext4",
+                        "mountPoint": "\/var\/lib\/docker\/volumes"
+                    },
+                    "template": {
+                        "size": 20,
+                        "type": "pd-standard"
+                    }
+                }
+            ]
+        },
+        {
+            "alias": "app-lb",
+            "role": {
+                "id": 79184
+            },
+            "cloudPlatform": "gce",
+            "cloudLocation": "us-west1",
+            "availabilityZones": [
+                "us-west1-a"
+            ],
+            "instanceType": {
+                "id": "g1-small"
+            },
+            "scaling": {
+                "enabled": true,
+                "minInstances": 1,
+                "maxInstances": 2,
+                "scalingBehavior": "launch-terminate",
+                "considerSuspendedServers": "running",
+                "rules": []
+            },
+            "networking": {
+                "networks": [
+                    {
+                        "id": "gannett-paas-xpn\/global\/networks\/gannett-west-xpn-network"
+                    }
+                ],
+                "subnets": [
+                    {
+                        "id": "gannett-paas-staging-us-west1"
+                    }
+                ]
+            },
+            "bootstrapping": {
+                "enabled": true,
+                "type": "ChefServerBootstrapConfiguration",
+                "server": {
+                    "id": 2
+                },
+                "environment": "staging",
+                "logLevel": "auto",
+                "sslVerificationMode": "auto",
+                "scope": "role",
+                "daemonize": false,
+                "runList": "[\"recipe[gci-haproxy]\"]"
+            },
+            "cloudFeatures": {
+                "type": "GceCloudFeatures",
+                "networkTags": [
+                    "scalr",
+                    "gannett-internal-https",
+                    "gannett-internal-haproxy-status"
+                ]
+            },
+            "variables": [
+                {
+                    "name": "HAPROXY_CONFIGURATION",
+                    "value": "{\n   \"name\": \"app-lb\",\n   \"docker\": true,\n   \"listen\": {\n     \"bind\": \"*\",\n     \"port\": 80\n   },\n   \"upstream\": [{\n     \"alias\": \"kubernetes-worker\",\n     \"port\": 80,\n     \"healthcheck_uri\": \"\/version-info.html\"\n   }]\n}"
+                }
+            ],
+            "orchestration": {
+                "rules": []
+            },
+            "storage": []
+        },
+        {
+            "alias": "gci-haproxy-7",
+            "role": {
+                "id": 79184
+            },
+            "cloudPlatform": "gce",
+            "cloudLocation": "us-west1",
+            "availabilityZones": [
+                "us-west1-a"
+            ],
+            "instanceType": {
+                "id": "g1-small"
+            },
+            "scaling": {
+                "enabled": true,
+                "minInstances": 1,
+                "maxInstances": 2,
+                "scalingBehavior": "launch-terminate",
+                "considerSuspendedServers": "running",
+                "rules": []
+            },
+            "networking": {
+                "networks": [
+                    {
+                        "id": "gannett-paas-xpn\/global\/networks\/gannett-west-xpn-network"
+                    }
+                ],
+                "subnets": [
+                    {
+                        "id": "gannett-paas-staging-us-west1"
+                    }
+                ]
+            },
+            "bootstrapping": {
+                "enabled": true,
+                "type": "ChefServerBootstrapConfiguration",
+                "server": {
+                    "id": 2
+                },
+                "environment": "staging",
+                "logLevel": "auto",
+                "sslVerificationMode": "auto",
+                "scope": "role",
+                "daemonize": false,
+                "runList": "[\"recipe[gci-haproxy]\"]"
+            },
+            "cloudFeatures": {
+                "type": "GceCloudFeatures",
+                "networkTags": [
+                    "scalr",
+                    "gannett-internal-https",
+                    "gannett-internal-haproxy-status"
+                ]
+            },
+            "variables": [
+                {
+                    "name": "HAPROXY_CONFIGURATION",
+                    "value": "{\n   \"name\": \"azcentral-lb\",\n   \"docker\": true,\n   \"listen\": {\n     \"bind\": \"*\",\n     \"port\": 80\n   },\n   \"upstream\": [{\n     \"alias\": \"kubernetes-worker\",\n     \"port\": 80,\n     \"healthcheck_uri\": \"\/version-info.html\"\n   }]\n}"
+                }
+            ],
+            "orchestration": {
+                "rules": []
+            },
+            "storage": []
+        }
+    ]
+}
