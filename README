@@ -5,13 +5,17 @@ This can be used to create a scalr farm with lots of haproxy's.
 It's a good idea to make sure your haproxy is last on the list.
 
 Once created save your farm and create a farm template.
+Instructions on working with farm templates is here: 
+
+https://scalr-wiki.atlassian.net/wiki/spaces/docs/pages/91036990/Managing+Farm+Templates
+
 
 Download the farm template you created.  I just copied and pasted it into a vi window.
 Save the file as farm-template.json, make a backupjust in case.
 
-On the bottom of the file you should see the haproxy farm role settings.
+On the bottom of the file you should see the haproxy farm role settings section.
 
-Remove the last 2 lines of the file and add a comma to the last bracket.
+Remove the farm role to the last 2 lines of the file and add a comma to the last bracket.
 
 -----------------
 "storage": []
